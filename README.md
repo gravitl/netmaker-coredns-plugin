@@ -1,0 +1,1 @@
+# netmaker-coredns-plugin
