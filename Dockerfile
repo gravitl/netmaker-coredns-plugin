@@ -1,7 +1,7 @@
 FROM debian:stable-slim as base
 
 RUN apt-get update && apt-get -uy upgrade
-RUN apt-get -y install ca-certificates && update-ca-certificates
+RUN apt-get -y install ca-certificates gcc && update-ca-certificates
 # install golang
 
 ENV GO_VERSION=1.16
@@ -26,14 +26,12 @@ RUN \
     mv coredns* coredns
 
 WORKDIR /go/src/github.com/coredns/coredns
-COPY coredns/plugin plugin/netmaker
-COPY . netmaker
 
 RUN \
     export PATH=$PATH:/usr/local/go/bin/ && \
     sed '/file:file/i netmaker:github.com/gravitl/netmaker-coredns-plugin' plugin.cfg -i && \
     go generate && \
-    go mod tidy && \
+    go get && \
     go build -o /coredns
 
 FROM base
