@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/gravitl/netmaker/models"
 )
 
 type Client struct {
@@ -23,7 +21,7 @@ func NewClient(APIURL string, APIToken string) *Client {
 	}
 }
 
-func (nm Client) DNS(ctx context.Context) ([]models.Node, error) {
+func (nm Client) DNS(ctx context.Context) ([]DNSEntry, error) {
 	url := fmt.Sprintf("%v/api/dns", nm.APIURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -38,11 +36,11 @@ func (nm Client) DNS(ctx context.Context) ([]models.Node, error) {
 	}
 	defer resp.Body.Close()
 
-	nodes := make([]models.Node, 0)
-	err = json.NewDecoder(resp.Body).Decode(&nodes)
+	entries := make([]DNSEntry, 0)
+	err = json.NewDecoder(resp.Body).Decode(&entries)
 	if err != nil {
 		return nil, err
 	}
 
-	return nodes, nil
+	return entries, nil
 }

@@ -1,42 +1,27 @@
-FROM debian:stable-slim as base
+FROM golang:1.17.3 as builder
 
-RUN apt-get update && apt-get -uy upgrade
-RUN apt-get -y install ca-certificates gcc && update-ca-certificates
-# install golang
+RUN apt update && apt upgrade -y && apt install iptables -y
 
-ENV GO_VERSION=1.16
-ENV OS=linux
-ENV ARCH=amd64
+RUN git clone --single-branch --branch v1.8.6 https://github.com/coredns/coredns.git /coredns
 
-FROM base as build
+WORKDIR /coredns
 
-RUN apt-get install -y git wget
-RUN \
-    wget https://golang.org/dl/go${GO_VERSION}.${OS}-${ARCH}.tar.gz && \
-    tar -C /usr/local -xzf go${GO_VERSION}.${OS}-${ARCH}.tar.gz && \
-    rm go${GO_VERSION}.${OS}-${ARCH}.tar.gz
+RUN make gen
+RUN make
 
-ENV COREDNS_VERSION=v1.8.6
+RUN mkdir -p plugin/netmaker
+RUN echo 'netmaker:github.com/gravitl/netmaker-coredns-plugin' >> /coredns/plugin.cfg
 
-RUN \
-    mkdir -p /go/src/github.com/coredns && \
-    cd /go/src/github.com/coredns && \
-    wget https://github.com/coredns/coredns/archive/refs/tags/${COREDNS_VERSION}.tar.gz && \
-    tar xvf ${COREDNS_VERSION}.tar.gz && \
-    mv coredns* coredns
+COPY *.go /coredns/plugin/netmaker/
+RUN make
+RUN chmod 0755 /coredns/coredns
 
-WORKDIR /go/src/github.com/coredns/coredns
+FROM alpine:3.14
+RUN apk add iptables
 
-RUN \
-    export PATH=$PATH:/usr/local/go/bin/ && \
-    sed '/file:file/i netmaker:github.com/gravitl/netmaker-coredns-plugin' plugin.cfg -i && \
-    go generate && \
-    go get && \
-    go build -o /coredns
+COPY --from=builder /coredns/coredns /
+COPY Corefile /
 
-FROM base
+EXPOSE 53
 
-COPY --from=build /coredns /coredns
-
-EXPOSE 53 53/udp
 ENTRYPOINT ["/coredns"]
