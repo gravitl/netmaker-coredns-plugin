@@ -1,0 +1,11 @@
+.:53 {
+    log
+    errors
+    netmaker:netmaker {
+        api_url http://api:8081
+        api_key secretkey
+        refresh_duration 1s
+        fallthrough
+    }
+    forward . /etc/resolv.conf
+}

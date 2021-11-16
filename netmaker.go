@@ -9,13 +9,12 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/request"
-	"github.com/gravitl/netmaker/models"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
 type DNSer interface {
-	DNS(context.Context) ([]models.Node, error)
+	DNS(context.Context) ([]DNSEntry, error)
 }
 
 // Netmaker is a plugin that talks to netmaker API to retrieve hosts
@@ -135,18 +134,18 @@ func getMatchingAEntries(qn string, dataset *DNSEntries) ([]string, error) {
 // fetchEntries will retrieve the nodes from the Netmaker API.
 func (nm Netmaker) fetchEntries() (DNSEntries, error) {
 	ctx := context.Background()
-	nodes, err := nm.DNSClient.DNS(ctx)
+	nmdns, err := nm.DNSClient.DNS(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	entries := make(DNSEntries)
-	for _, node := range nodes {
-		_, ok := entries[node.Name]
+	for _, entry := range nmdns {
+		_, ok := entries[entry.Name]
 		if !ok {
-			entries[node.Name] = make(hostAddresses)
+			entries[entry.Name] = make(hostAddresses)
 		}
-		entries[node.Name][node.Network] = node.Address
+		entries[entry.Name][entry.Network] = entry.Address
 	}
 
 	return entries, nil
